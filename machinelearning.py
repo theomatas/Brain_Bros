@@ -12,7 +12,12 @@ from sklearn.svm import LinearSVC
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 
-
+def score_personnalisé(prediction,realite):
+    VP_FP_FN=list(filter(lambda x : (x[0]==0 and x[1]==0)==False ,zip(prediction,realite)))
+    #print("Taille de la liste :",len(realite))
+    #print("Taille de la liste sans les vrais négatifs:",len(VP_FP_FN))
+    VP=len(list(filter(lambda x : x[0]==x[1] ,VP_FP_FN)))
+    return round(VP*100/len(VP_FP_FN),2)
 
 def prediction(dataframe,
                target='TARGET',
@@ -32,11 +37,14 @@ def prediction(dataframe,
     models_trained=[mod.fit(train_x,train_y) for mod in models]
     del train_x,train_y
     def résultats(mod):
-        return {"score":round(mod.score(test_x,test_y)*100,2),"modèle":str(mod)}
+        return {"score":round(mod.score(test_x,test_y)*100,2),
+                "modèle":str(mod),
+                "score_perso":score_personnalisé(list(mod.predict(test_x)),list(test_y))}
     results=[résultats(mod) for mod in models_trained]
     Infos['scores']=results
     del models_trained
     [print("La précision de {} est : {}%".format(res['modèle'],res["score"])) for res in results]
+    [print("La précision perso de {} est : {}%".format(res['modèle'],res["score_perso"])) for res in results]
     f=open("results.txt",'a+',encoding="utf-8")
     f.write(str(Infos)+'\n')
     f.close()
