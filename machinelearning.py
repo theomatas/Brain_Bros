@@ -15,7 +15,8 @@ from sklearn.metrics import accuracy_score
 from urllib.parse import urlparse
 import mlflow
 import mlflow.sklearn
-
+from sklearn.linear_model import ElasticNet
+import os
 
 def score_personnalisé(prediction,realite):
     VP_FP_FN=list(filter(lambda x : (x[0]==0 and x[1]==0)==False ,zip(prediction,realite)))
@@ -26,72 +27,59 @@ def score_personnalisé(prediction,realite):
 
 def prediction(dataframe,
                target='TARGET',
-               models=[LinearSVC(),
-                       RandomForestClassifier(n_estimators=750),
-                       GradientBoostingClassifier(),
-                       LogisticRegression()
+               models=[{"modèle":LinearSVC,"paramètres":{"random_state":44}}
                       ]
               ):
-    Infos={'nombre de lignes':len(dataframe.index),'nombre de colonnes':len(dataframe),'ratio':0.25}
     print("création des échantillons")
     Y=np.array(list(dataframe[target]))
     X=np.array(list(zip([list(dataframe[colonne]) for colonne in dataframe if colonne!=target]))).reshape(-1,len(dataframe.columns)-1)
     train_x, test_x, train_y, test_y  = train_test_split(X, Y, test_size = 0.25, random_state = 44)
     del X,Y
     print("Apprentissage des modèles")
-    models_trained=[mod.fit(train_x,train_y) for mod in models]
-    del train_x,train_y
-    def résultats(mod):
-        return {"score":round(mod.score(test_x,test_y)*100,2),
-                "modèle":str(mod),
-                "score_perso":score_personnalisé(list(mod.predict(test_x)),list(test_y))}
-    results=[résultats(mod) for mod in models_trained]
-    Infos['scores']=results
-    del models_trained
-    [print("La précision de {} est : {}%".format(res['modèle'],res["score"])) for res in results]
-    [print("La précision perso de {} est : {}%".format(res['modèle'],res["score_perso"])) for res in results]
-    f=open("results.txt",'a+',encoding="utf-8")
-    f.write(str(Infos)+'\n')
-    f.close()
+    for mod in models:
+        mlflowtisation(train_x,train_y,test_x,test_y,
+                       modele=[mod['modèle']],
+                       params=mod['paramètres'],
+                       nombre_de_lignes=len(dataframe.index),
+                       nombre_de_colonnes=len(dataframe.columns)-1
+                       )
+
+
     
-def mlflowtisation(dataframe,target='TARGET',
-                   modele=[LinearSVC(intercept_scaling=2,random_state=44)],
-                   intercept_scaling=2,
-                   random_state=44):
+def mlflowtisation(
+                   train_x,train_y,test_x,test_y,
+                   modele=[ElasticNet],
+                   params={"random_state":44},
+                   nombre_de_lignes="",
+                   nombre_de_colonnes=""
+                   ):
+    os.chdir("./../")
+    import logging
+    logging.basicConfig(level=logging.WARN)
+    logger = logging.getLogger(__name__)
+    def categ(x):
+        if x <=0.1:
+            return 0
+        else:
+            return 1
     def eval_metrics(actual, pred):
         acc = accuracy_score(actual, pred)
         return acc
-    print("création des échantillons")
-    Y=np.array(list(dataframe[target]))
-    X=np.array(list(zip([list(dataframe[colonne]) for colonne in dataframe if colonne!=target]))).reshape(-1,len(dataframe.columns)-1)
-    train_x, test_x, train_y, test_y  = train_test_split(X, Y, test_size = 0.25, random_state = random_state)
-    del X,Y
-
     with mlflow.start_run():
-        mod = modele[0]
+        mod = modele[0](**params)
         mod.fit(train_x, train_y)
-
-        predicted_qualities = mod.predict(test_x)
-
+        predicted_qualities = np.array(list(map(lambda x: categ(x),list(mod.predict(test_x)))))
         acc = eval_metrics(test_y, predicted_qualities)
-
-        print("Model (intercept_scaling=%f, random_state=%f):" % (intercept_scaling, random_state))
-        print("  acc: %s" % acc)
-
-        mlflow.log_param("intercept_scaling", intercept_scaling)
-        mlflow.log_param("random_state", random_state)
+        print("La précision du modèle {} est : {}%".format(str(mod),round(acc*100,2)))
+        mlflow.log_param("Modèle utilisé", type(mod).__name__)
+        for param in params:
+            mlflow.log_param(param, params[param])
+        mlflow.log_param("nombre de lignes", nombre_de_lignes)
+        mlflow.log_param("nombre de colonnes", nombre_de_colonnes)
         mlflow.log_metric("acc", acc)
-
-
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
-
         # Model registry does not work with file store
         if tracking_url_type_store != "file":
-
-            # Register the model
-            # There are other ways to use the Model Registry, which depends on the use case,
-            # please refer to the doc for more information:
-            # https://mlflow.org/docs/latest/model-registry.html#api-workflow
             mlflow.sklearn.log_model(mod, "model", registered_model_name=str(mod))
         else:
             mlflow.sklearn.log_model(mod, "model")
