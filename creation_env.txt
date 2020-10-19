@@ -1,0 +1,8 @@
+conda create -n python37 python=3.7
+conda activate python37
+pip install pandas
+pip install flask
+pip install sklearn
+pip install sphinx
+pip install mlflow
+pip install plotly
