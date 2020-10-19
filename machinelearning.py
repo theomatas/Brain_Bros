@@ -11,6 +11,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from urllib.parse import urlparse
+import mlflow
+import mlflow.sklearn
+
 
 def score_personnalisé(prediction,realite):
     VP_FP_FN=list(filter(lambda x : (x[0]==0 and x[1]==0)==False ,zip(prediction,realite)))
@@ -48,3 +53,45 @@ def prediction(dataframe,
     f=open("results.txt",'a+',encoding="utf-8")
     f.write(str(Infos)+'\n')
     f.close()
+    
+def mlflowtisation(dataframe,target='TARGET',
+                   modele=[LinearSVC(intercept_scaling=2,random_state=44)],
+                   intercept_scaling=2,
+                   random_state=44):
+    def eval_metrics(actual, pred):
+        acc = accuracy_score(actual, pred)
+        return acc
+    print("création des échantillons")
+    Y=np.array(list(dataframe[target]))
+    X=np.array(list(zip([list(dataframe[colonne]) for colonne in dataframe if colonne!=target]))).reshape(-1,len(dataframe.columns)-1)
+    train_x, test_x, train_y, test_y  = train_test_split(X, Y, test_size = 0.25, random_state = random_state)
+    del X,Y
+
+    with mlflow.start_run():
+        mod = modele[0]
+        mod.fit(train_x, train_y)
+
+        predicted_qualities = mod.predict(test_x)
+
+        acc = eval_metrics(test_y, predicted_qualities)
+
+        print("Model (intercept_scaling=%f, random_state=%f):" % (intercept_scaling, random_state))
+        print("  acc: %s" % acc)
+
+        mlflow.log_param("intercept_scaling", intercept_scaling)
+        mlflow.log_param("random_state", random_state)
+        mlflow.log_metric("acc", acc)
+
+
+        tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+
+        # Model registry does not work with file store
+        if tracking_url_type_store != "file":
+
+            # Register the model
+            # There are other ways to use the Model Registry, which depends on the use case,
+            # please refer to the doc for more information:
+            # https://mlflow.org/docs/latest/model-registry.html#api-workflow
+            mlflow.sklearn.log_model(mod, "model", registered_model_name=str(mod))
+        else:
+            mlflow.sklearn.log_model(mod, "model")
