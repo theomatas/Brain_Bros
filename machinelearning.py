@@ -53,6 +53,7 @@ def mlflowtisation(
                    nombre_de_lignes="",
                    nombre_de_colonnes=""
                    ):
+    path=os.getcwd()
     os.chdir("./../")
     import logging
     logging.basicConfig(level=logging.WARN)
@@ -83,3 +84,4 @@ def mlflowtisation(
             mlflow.sklearn.log_model(mod, "model", registered_model_name=str(mod))
         else:
             mlflow.sklearn.log_model(mod, "model")
+    os.chdir(str(path))
