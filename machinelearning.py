@@ -18,14 +18,6 @@ import mlflow.sklearn
 from sklearn.linear_model import ElasticNet
 import os
 
-import os 
-def pwd(): # give the @ of the current file
-    return os.getcwd()
-
-
-
-class Local:
-    Path = pwd() + '\\..\\..\\'
 
 
 
@@ -66,6 +58,9 @@ def mlflowtisation(
                    nombre_de_colonnes=""
                    ):
 
+    path=os.getcwd()
+    os.chdir("./../")
+
     import logging
     logging.basicConfig(level=logging.WARN)
     logger = logging.getLogger(__name__)
@@ -98,4 +93,5 @@ def mlflowtisation(
             mlflow.sklearn.log_model(mod,"model")
 
             mlflow.sklearn.log_model(mod, "model")
+    os.chdir(str(path))
 
