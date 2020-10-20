@@ -39,7 +39,6 @@ def prediction(dataframe,
     train_x, test_x, train_y, test_y  = train_test_split(X, Y, test_size = 0.25, random_state = 44)
     del X,Y
     print("Apprentissage des modèles")
-    mlflow.set_experiment(Local.Path)
     for mod in models:
         mlflowtisation(train_x,train_y,test_x,test_y,
                        modele=[mod['modèle']],
