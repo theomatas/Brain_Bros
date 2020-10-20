@@ -65,11 +65,7 @@ def mlflowtisation(
                    nombre_de_lignes="",
                    nombre_de_colonnes=""
                    ):
-<<<<<<< HEAD
-    path=os.getcwd()
-    os.chdir("./../")
-=======
->>>>>>> 9211015da1bde70f3b661d0fb1fdd64a95a60797
+
     import logging
     logging.basicConfig(level=logging.WARN)
     logger = logging.getLogger(__name__)
@@ -98,9 +94,8 @@ def mlflowtisation(
         if tracking_url_type_store != "file":
             mlflow.sklearn.log_model(mod,"model", registered_model_name=str(mod))
         else:
-<<<<<<< HEAD
-            mlflow.sklearn.log_model(mod, "model")
-    os.chdir(str(path))
-=======
+
             mlflow.sklearn.log_model(mod,"model")
->>>>>>> 9211015da1bde70f3b661d0fb1fdd64a95a60797
+
+            mlflow.sklearn.log_model(mod, "model")
+
