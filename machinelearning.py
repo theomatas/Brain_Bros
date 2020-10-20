@@ -18,6 +18,17 @@ import mlflow.sklearn
 from sklearn.linear_model import ElasticNet
 import os
 
+import os 
+def pwd(): # give the @ of the current file
+    return os.getcwd()
+
+
+
+class Local:
+    Path = pwd() + '\\..\\..\\'
+
+
+
 def score_personnalisé(prediction,realite):
     VP_FP_FN=list(filter(lambda x : (x[0]==0 and x[1]==0)==False ,zip(prediction,realite)))
     #print("Taille de la liste :",len(realite))
@@ -36,6 +47,7 @@ def prediction(dataframe,
     train_x, test_x, train_y, test_y  = train_test_split(X, Y, test_size = 0.25, random_state = 44)
     del X,Y
     print("Apprentissage des modèles")
+    mlflow.set_experiment(Local.Path)
     for mod in models:
         mlflowtisation(train_x,train_y,test_x,test_y,
                        modele=[mod['modèle']],
@@ -53,7 +65,6 @@ def mlflowtisation(
                    nombre_de_lignes="",
                    nombre_de_colonnes=""
                    ):
-    os.chdir("./../")
     import logging
     logging.basicConfig(level=logging.WARN)
     logger = logging.getLogger(__name__)
@@ -80,6 +91,6 @@ def mlflowtisation(
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
         # Model registry does not work with file store
         if tracking_url_type_store != "file":
-            mlflow.sklearn.log_model(mod, "model", registered_model_name=str(mod))
+            mlflow.sklearn.log_model(mod,"model", registered_model_name=str(mod))
         else:
-            mlflow.sklearn.log_model(mod, "model")
+            mlflow.sklearn.log_model(mod,"model")
