@@ -6,3 +6,5 @@ pip install sklearn
 pip install sphinx
 pip install mlflow
 pip install plotly
+pip install jupyter-notebook
+pip install xgboost
