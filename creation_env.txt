@@ -8,3 +8,6 @@ pip install mlflow
 pip install plotly
 pip install jupyter-notebook
 pip install xgboost
+pip install shap
+pip install eli5
+pip install lime
