@@ -11,14 +11,18 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 from urllib.parse import urlparse
 import mlflow
 import mlflow.sklearn
 from sklearn.linear_model import ElasticNet
 import os
-
-
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+import eli5
+from lime.lime_tabular import LimeTabularExplainer
+from matplotlib import pyplot as plt
+import shap
 
 
 def score_personnalisé(prediction,realite):
@@ -36,7 +40,7 @@ def prediction(dataframe,
     print("création des échantillons")
     Y=np.array(list(dataframe[target]))
     X=np.array(list(zip([list(dataframe[colonne]) for colonne in dataframe if colonne!=target]))).reshape(-1,len(dataframe.columns)-1)
-    train_x, test_x, train_y, test_y  = train_test_split(X, Y, test_size = 0.25, random_state = 44)
+    train_x, test_x, train_y, test_y  = train_test_split(X, Y, test_size = 0.20, random_state = 44)
     del X,Y
     print("Apprentissage des modèles")
     for mod in models:
@@ -74,15 +78,31 @@ def mlflowtisation(
     with mlflow.start_run():
         mod = modele[0](**params)
         mod.fit(train_x, train_y)
+        try:
+            with open(type(mod).__name__+'.html', 'w') as f:
+                f.write(str(eli5.show_weights(mod).data))
+        except Exception as e:
+            print(e)
+        try:
+            shap.initjs()
+            explainer = shap.TreeExplainer(mod)
+            observations = mod.transform(train_x.sample(1000))
+            shap_values = explainer.shap_values(observations)
+            i = 0
+            shap.force_plot(explainer.expected_value, shap_values[i], features=observations[i])
+        except Exception as e:
+            print(e)
         predicted_qualities = np.array(list(map(lambda x: categ(x),list(mod.predict(test_x)))))
         acc = eval_metrics(test_y, predicted_qualities)
+        rapport_details=classification_report(test_y, predicted_qualities)
         print("La précision du modèle {} est : {}%".format(str(mod),round(acc*100,2)))
         mlflow.log_param("Modèle utilisé", type(mod).__name__)
         for param in params:
             mlflow.log_param(param, params[param])
         mlflow.log_param("nombre de lignes", nombre_de_lignes)
         mlflow.log_param("nombre de colonnes", nombre_de_colonnes)
-        mlflow.log_metric("acc", acc)
+        mlflow.log_param("rapport_details", rapport_details)
+        mlflow.log_metric("acc", acc) 
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
         # Model registry does not work with file store
         if tracking_url_type_store != "file":
