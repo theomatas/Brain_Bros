@@ -35,9 +35,9 @@ extensions = [
 'numpy',
 'sklearn',
 'sphinx.ext.autodoc',
-    'sphinx.ext.coverage',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode'
+'sphinx.ext.coverage',
+'sphinx.ext.napoleon',
+'sphinx.ext.viewcode'
 #'mlflow'
 ]
 
