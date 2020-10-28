@@ -95,6 +95,9 @@ def mlflowtisation(
         predicted_qualities = np.array(list(map(lambda x: categ(x),list(mod.predict(test_x)))))
         acc = eval_metrics(test_y, predicted_qualities)
         rapport_details=classification_report(test_y, predicted_qualities)
+        f=open(type(mod).__name__+'.txt', 'w')
+        f.write(rapport_details)
+        f.close()
         print("La précision du modèle {} est : {}%".format(str(mod),round(acc*100,2)))
         mlflow.log_param("Modèle utilisé", type(mod).__name__)
         for param in params:
