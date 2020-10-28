@@ -23,6 +23,7 @@ import eli5
 from lime.lime_tabular import LimeTabularExplainer
 from matplotlib import pyplot as plt
 import shap
+import pandas as pd
 
 
 def score_personnalisé(prediction,realite):
@@ -35,11 +36,16 @@ def score_personnalisé(prediction,realite):
 def prediction(dataframe,
                target='TARGET',
                models=[{"modèle":LinearSVC,"paramètres":{"random_state":44}}
-                      ]
+                      ],
+               dataframe_non_qualifié=None
               ):
     print("création des échantillons")
+    X_=dataframe_non_qualifié
     Y=np.array(list(dataframe[target]))
     X=np.array(list(zip([list(dataframe[colonne]) for colonne in dataframe if colonne!=target]))).reshape(-1,len(dataframe.columns)-1)
+
+    print("Qualification des données...")
+    X_=np.array(X_).reshape(-1,len(X_.columns))
     train_x, test_x, train_y, test_y  = train_test_split(X, Y, test_size = 0.20, random_state = 44)
     del X,Y
     print("Apprentissage des modèles")
@@ -48,7 +54,8 @@ def prediction(dataframe,
                        modele=[mod['modèle']],
                        params=mod['paramètres'],
                        nombre_de_lignes=len(dataframe.index),
-                       nombre_de_colonnes=len(dataframe.columns)-1
+                       nombre_de_colonnes=len(dataframe.columns)-1,
+                       dataframe_non_qualifié=dataframe_non_qualifié
                        )
 
 
@@ -58,7 +65,8 @@ def mlflowtisation(
                    modele=[ElasticNet],
                    params={"random_state":44},
                    nombre_de_lignes="",
-                   nombre_de_colonnes=""
+                   nombre_de_colonnes="",
+                   dataframe_non_qualifié=None
                    ):
 
     path=os.getcwd()
@@ -99,6 +107,13 @@ def mlflowtisation(
         f.write(rapport_details)
         f.close()
         print("La précision du modèle {} est : {}%".format(str(mod),round(acc*100,2)))
+        
+        try:
+            print("Qualification des données...")
+            res=mod.predict(dataframe_non_qualifié)
+            pd.DataFrame.from_dict({"pred":list(res)}).to_csv(type(mod).__name__+'.csv')
+        except:
+            pass
         mlflow.log_param("Modèle utilisé", type(mod).__name__)
         for param in params:
             mlflow.log_param(param, params[param])
