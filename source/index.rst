@@ -10,6 +10,11 @@ Welcome to Brain_Bros's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+TeacherAPI main
+===================
+.. automodule:: machinelearning
+   :members:
+
 
 
 Indices and tables
